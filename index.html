@@ -13,7 +13,6 @@
       }
       body { margin: 0; background: transparent; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
 
-      /* Launcher */
       #launcher {
         position: fixed;
         right: 16px;
@@ -30,7 +29,6 @@
         line-height: 56px;
       }
 
-      /* Panel */
       #panel {
         position: fixed;
         right: 16px;
@@ -106,7 +104,6 @@
         font-size: 14px;
       }
 
-      /* Mobile */
       @media (max-width: 420px) {
         #panel { width: calc(100vw - 32px); height: 70vh; }
         #chat { height: calc(70vh - 52px - 56px); }
@@ -131,8 +128,7 @@
     </div>
 
     <script>
-      // TODO: replace with your Worker URL
-      const WORKER_URL = "YOUR_WORKER_URL";
+      const WORKER_URL = "https://just-dental-chat.adamhat213.workers.dev";
 
       const launcher = document.getElementById("launcher");
       const panel = document.getElementById("panel");
