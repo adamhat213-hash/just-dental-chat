@@ -3,54 +3,180 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Just Dental Clinic Chat</title>
+    <title>Just Dental Clinic Chat Widget</title>
     <style>
-      body { font-family: system-ui, Arial; margin: 0; }
-      .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
-      .box { border: 1px solid #e5e7eb; border-radius: 12px; height: 70vh; padding: 12px; overflow: auto; background: #fff; }
-      .msg { margin: 10px 0; }
-      .user { font-weight: 600; }
-      .assistant { font-weight: 600; }
-      form { display: flex; gap: 8px; margin-top: 12px; }
-      input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #e5e7eb; }
-      button { padding: 10px 12px; border-radius: 10px; border: 1px solid #e5e7eb; background: #111827; color: white; }
+      :root {
+        --primary: #0ea5e9;
+        --bg: #ffffff;
+        --border: #e5e7eb;
+        --text: #111827;
+      }
+      body { margin: 0; background: transparent; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+
+      /* Launcher */
+      #launcher {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        border: none;
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,.18);
+        cursor: pointer;
+        font-size: 22px;
+        line-height: 56px;
+      }
+
+      /* Panel */
+      #panel {
+        position: fixed;
+        right: 16px;
+        bottom: 84px;
+        width: 340px;
+        height: 440px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 16px 50px rgba(0,0,0,.22);
+        display: none;
+        overflow: hidden;
+      }
+      #header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 600;
+      }
+      #close {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 6px 8px;
+        border-radius: 10px;
+      }
+      #close:hover { background: #f3f4f6; }
+
+      #chat {
+        height: calc(440px - 52px - 56px);
+        padding: 10px 12px;
+        overflow: auto;
+        background: #fafafa;
+      }
+      .bubble {
+        max-width: 85%;
+        padding: 10px 12px;
+        border-radius: 14px;
+        margin: 8px 0;
+        font-size: 14px;
+        line-height: 1.25rem;
+        white-space: pre-wrap;
+      }
+      .user { margin-left: auto; background: var(--primary); color: white; border-bottom-right-radius: 6px; }
+      .assistant { margin-right: auto; background: white; color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 6px; }
+
+      #composer {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        border-top: 1px solid var(--border);
+        background: white;
+      }
+      #input {
+        flex: 1;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 14px;
+        outline: none;
+      }
+      #send {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: #111827;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      /* Mobile */
+      @media (max-width: 420px) {
+        #panel { width: calc(100vw - 32px); height: 70vh; }
+        #chat { height: calc(70vh - 52px - 56px); }
+      }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <h2>Just Dental Clinic</h2>
-      <div id="chat" class="box"></div>
+    <button id="launcher" aria-label="Open chat">💬</button>
 
-      <form id="form">
-        <input id="input" placeholder="Type your message…" autocomplete="off" />
-        <button type="submit">Send</button>
+    <div id="panel" role="dialog" aria-label="Just Dental Clinic chat">
+      <div id="header">
+        <div>Just Dental Clinic</div>
+        <button id="close" aria-label="Close">✕</button>
+      </div>
+
+      <div id="chat"></div>
+
+      <form id="composer">
+        <input id="input" placeholder="Type a message…" autocomplete="off" />
+        <button id="send" type="submit">Send</button>
       </form>
     </div>
 
     <script>
+      // TODO: replace with your Worker URL
       const WORKER_URL = "YOUR_WORKER_URL";
-      const chatBox = document.getElementById("chat");
-      const form = document.getElementById("form");
-      const input = document.getElementById("input");
-      let previousChatId = null;
 
-      function add(role, text) {
+      const launcher = document.getElementById("launcher");
+      const panel = document.getElementById("panel");
+      const closeBtn = document.getElementById("close");
+      const chat = document.getElementById("chat");
+      const form = document.getElementById("composer");
+      const input = document.getElementById("input");
+
+      let previousChatId = null;
+      let greeted = false;
+
+      function bubble(role, text) {
         const div = document.createElement("div");
-        div.className = "msg";
-        div.innerHTML = `<span class="${role}">${role}:</span> ${text.replaceAll("\n","<br/>")}`;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        div.className = `bubble ${role}`;
+        div.textContent = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
       }
 
-      add("assistant", "Hi! How can I help you today—booking, rescheduling, or a question?");
+      function openPanel() {
+        panel.style.display = "block";
+        if (!greeted) {
+          bubble("assistant", "Hi! How can I help you today—booking, rescheduling, or a question?");
+          greeted = true;
+        }
+        setTimeout(() => input.focus(), 50);
+      }
+
+      function closePanel() {
+        panel.style.display = "none";
+      }
+
+      launcher.addEventListener("click", () => {
+        if (panel.style.display === "block") closePanel();
+        else openPanel();
+      });
+      closeBtn.addEventListener("click", closePanel);
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
-
-        add("user", text);
+        bubble("user", text);
 
         const resp = await fetch(WORKER_URL, {
           method: "POST",
@@ -61,8 +187,8 @@
         const data = await resp.json();
         previousChatId = data.id;
 
-        const out = (data.output || []).map(m => m.content).join("\n");
-        add("assistant", out || "(no response)");
+        const out = (data.output || []).map(m => m.content).join("\n").trim();
+        bubble("assistant", out || "Sorry—no response.");
       });
     </script>
   </body>
